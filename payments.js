@@ -7,7 +7,7 @@
 // ─── Config ──────────────────────────────────────────────────────────────────
 // Set this after deploying Code.gs as a Web App.
 // Leave empty to run in local-only mode (no persistence).
-var APPS_SCRIPT_URL = '';
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxog1NtAaAnVSEFQ-5lkW3rO2nDdsFjzdsja5L1UZ62vPpq_zUphMnzFsJepn5USVq8/exec';
 
 // ─── Real Spring '26 payment schedule ────────────────────────────────────────
 // T1 = Apr 1 (13 biz days after Mar 15 close)

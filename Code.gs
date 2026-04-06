@@ -148,45 +148,99 @@ function handleLogout(data) {
 // DATA HANDLERS (Stubs — wire to sheet reads)
 // ============================================
 function handleGetStats(data) {
-  // TODO: Count from actual sheets
+  var stewards = getSheet("STEWARDS");
+  var hubs = getSheet("HUBS");
+  var couriers = getSheet("COURIERS");
+  var orders = getSheet("ORDERS");
+
+  var stewardCount = stewards ? Math.max(0, stewards.getLastRow() - 1) : 0;
+  var hubCount = hubs ? Math.max(0, hubs.getLastRow() - 1) : 0;
+  var courierCount = couriers ? Math.max(0, couriers.getLastRow() - 1) : 0;
+  var memberCount = orders ? countUniqueMembers(orders) : 0;
+
   return {
     ok: true,
-    stewards: 7,
-    hubs: 1,
-    couriers: 1,
-    members: 44,
+    stewards: stewardCount,
+    hubs: hubCount,
+    couriers: courierCount,
+    members: memberCount,
     season: "Spring '26"
   };
 }
 
+function countUniqueMembers(sheet) {
+  if (sheet.getLastRow() < 2) return 0;
+  var data = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
+  var unique = {};
+  for (var i = 0; i < data.length; i++) {
+    if (data[i][0]) unique[data[i][0]] = true;
+  }
+  return Object.keys(unique).length;
+}
+
+function sheetToObjects(sheet) {
+  if (!sheet || sheet.getLastRow() < 2) return [];
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = [];
+  for (var i = 1; i < data.length; i++) {
+    var obj = {};
+    for (var j = 0; j < headers.length; j++) {
+      obj[headers[j]] = data[i][j];
+    }
+    rows.push(obj);
+  }
+  return rows;
+}
+
 function handleGetStewards(data) {
-  // TODO: Read from STEWARDS sheet
-  return { ok: true, stewards: [] };
+  var sheet = getSheet("STEWARDS");
+  return { ok: true, stewards: sheetToObjects(sheet) };
 }
 
 function handleUpdateSteward(data) {
-  // TODO: Write to STEWARDS sheet
-  return { ok: true };
+  if (!data.name) return { ok: false, error: "Missing steward name" };
+  var sheet = getSheet("STEWARDS");
+  if (!sheet) return { ok: false, error: "STEWARDS sheet not found" };
+
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.name && rows[i][1] === data.share) {
+      if (data.status) sheet.getRange(i + 1, 4).setValue(data.status);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: "Steward not found" };
 }
 
 function handleGetHubs(data) {
-  // TODO: Read from HUBS sheet
-  return { ok: true, hubs: [] };
+  var sheet = getSheet("HUBS");
+  return { ok: true, hubs: sheetToObjects(sheet) };
 }
 
 function handleUpdateHub(data) {
-  // TODO: Write to HUBS sheet
-  return { ok: true };
+  if (!data.name) return { ok: false, error: "Missing hub name" };
+  var sheet = getSheet("HUBS");
+  if (!sheet) return { ok: false, error: "HUBS sheet not found" };
+
+  var rows = sheet.getDataRange().getValues();
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === data.name) {
+      if (data.status) sheet.getRange(i + 1, 4).setValue(data.status);
+      return { ok: true };
+    }
+  }
+  return { ok: false, error: "Hub not found" };
 }
 
 function handleGetCouriers(data) {
-  // TODO: Read from COURIERS sheet
-  return { ok: true, couriers: [] };
+  var sheet = getSheet("COURIERS");
+  return { ok: true, couriers: sheetToObjects(sheet) };
 }
 
 function handleGetOrders(data) {
-  // TODO: Read from ORDERS sheet
-  return { ok: true, orders: [] };
+  var sheet = getSheet("ORDERS");
+  return { ok: true, orders: sheetToObjects(sheet) };
 }
 
 // ============================================
@@ -312,19 +366,27 @@ function handleReleaseGate(data) {
 }
 
 function handleGetCredits(data) {
-  // TODO: Read from CREDITS sheet
-  return { ok: true, credits: [] };
+  var sheet = getSheet("CREDITS");
+  return { ok: true, credits: sheetToObjects(sheet) };
 }
 
 function handleGetECTransfers(data) {
-  // TODO: Read from EC_TRANSFERS sheet
-  return { ok: true, transfers: [] };
+  var sheet = getSheet("EC_TRANSFERS");
+  return { ok: true, transfers: sheetToObjects(sheet) };
 }
 
 function handleRecordECTransfer(data) {
-  // TODO: Write to EC_TRANSFERS sheet
-  // Memo lines:
-  //   "Spring '26 credit redemptions $11,311.92"
-  //   "Spring '26 Sunburn rate guarantee $4,435.00"
+  var sheet = getSheet("EC_TRANSFERS");
+  if (!sheet) return { ok: false, error: "EC_TRANSFERS sheet not found" };
+
+  sheet.appendRow([
+    data.id || Utilities.getUuid(),
+    data.season || "Spring '26",
+    data.type || "",
+    data.amount || 0,
+    data.memo || "",
+    new Date().toISOString()
+  ]);
+
   return { ok: true };
 }

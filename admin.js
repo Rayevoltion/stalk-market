@@ -1,7 +1,7 @@
 // ─── Stalk Market — Admin Portal Logic ────────────────────────────────────────
 // TODO: Replace with real API calls to Code.gs backend
 
-// var APPS_SCRIPT_URL = ''; // Set after deploying Code.gs
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxog1NtAaAnVSEFQ-5lkW3rO2nDdsFjzdsja5L1UZ62vPpq_zUphMnzFsJepn5USVq8/exec';
 
 // ─── Steward data (Spring '26) ───────────────────────────────────────────────
 var STEWARDS = [
