@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payment Tracker — Stalk Market Admin</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Header -->
+  <div class="container">
+    <div class="header">
+      <div>
+        <div class="header__label">Stalk Market &middot; Admin</div>
+        <div class="header__title">Payment Tracker &mdash; Spring '26</div>
+      </div>
+      <div id="alert-badge" class="alert-badge"></div>
+    </div>
+  </div>
+
+  <!-- Stat Row -->
+  <div class="container">
+    <div class="stats-row" id="stats-row"></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="container">
+    <div class="tabs">
+      <button class="tab is-active" data-tab="queue">Queue</button>
+      <button class="tab" data-tab="season">Season</button>
+      <button class="tab" data-tab="payees">Payees</button>
+      <button class="tab" data-tab="funds">Funds</button>
+    </div>
+  </div>
+
+  <!-- Tab Content -->
+  <div class="container">
+    <div class="tab-content">
+      <!-- Queue Panel -->
+      <div id="panel-queue" class="panel is-active"></div>
+      <!-- Season Panel -->
+      <div id="panel-season" class="panel"></div>
+      <!-- Payees Panel -->
+      <div id="panel-payees" class="panel"></div>
+      <!-- Funds Panel -->
+      <div id="panel-funds" class="panel"></div>
+    </div>
+  </div>
+
+  <script src="payments.js"></script>
+</body>
+</html>

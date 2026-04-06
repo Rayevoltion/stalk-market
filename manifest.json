@@ -1,0 +1,16 @@
+{
+  "name": "Stalk Market",
+  "short_name": "Stalk Market",
+  "description": "Community food distribution platform — connecting stewards, hubs, and couriers",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a1810",
+  "theme_color": "#639922",
+  "icons": [
+    {
+      "src": "favicon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}

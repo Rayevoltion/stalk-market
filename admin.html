@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Stalk Market</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="login-screen" class="login-wrap">
+    <div class="login-card">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Stalk Market</div>
+      <div class="login-card__title">Admin Portal</div>
+      <input type="email" id="login-email" class="input" placeholder="Email">
+      <input type="password" id="login-pass" class="input" placeholder="Password">
+      <div id="login-error" style="color:var(--overdue);font-size:12px;margin-bottom:12px;display:none"></div>
+      <button class="btn--full" onclick="handleLogin()">Sign In</button>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard (hidden until login) -->
+  <div id="admin-app" class="hidden">
+
+    <!-- Header -->
+    <div class="container">
+      <div class="header">
+        <div>
+          <div class="header__label">Stalk Market &middot; Admin</div>
+          <div class="header__title" id="admin-title">Dashboard</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <a href="payments.html" class="btn btn--pay" style="font-size:10px;text-decoration:none">Payments</a>
+          <button class="btn btn--invoice" style="font-size:10px" onclick="handleLogout()">Log out</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="container">
+      <div class="stats-row" id="admin-stats"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="container">
+      <div class="tabs">
+        <button class="tab is-active" data-tab="dashboard">Dashboard</button>
+        <button class="tab" data-tab="stewards">Stewards</button>
+        <button class="tab" data-tab="hubs">Hubs</button>
+        <button class="tab" data-tab="couriers">Couriers</button>
+        <button class="tab" data-tab="orders">Orders</button>
+      </div>
+    </div>
+
+    <!-- Tab Content -->
+    <div class="container">
+      <div class="tab-content">
+
+        <!-- Dashboard -->
+        <div id="panel-dashboard" class="panel is-active">
+          <div class="section-label">Recent Activity</div>
+          <div class="panel-card" style="color:var(--text-second);font-size:12px;line-height:1.8">
+            <div style="padding:6px 0;border-bottom:0.5px solid var(--border)">
+              <span class="badge badge--overdue">overdue</span>
+              T1 payments past due &mdash; EC transfer needed before disbursement
+            </div>
+            <div style="padding:6px 0;border-bottom:0.5px solid var(--border)">
+              <span class="badge badge--paid">enrolled</span>
+              Spring '26 enrollment closed Mar 15 &mdash; 44 members, 7 stewards
+            </div>
+            <div style="padding:6px 0">
+              <span class="badge badge--upcoming">upcoming</span>
+              Summer '26 enrollment opens Jun 1
+            </div>
+          </div>
+        </div>
+
+        <!-- Stewards -->
+        <div id="panel-stewards" class="panel">
+          <div class="section-label">Stewards</div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Steward</th>
+                  <th>Share Type</th>
+                  <th>Season</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="stewards-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Hubs -->
+        <div id="panel-hubs" class="panel">
+          <div class="section-label">Hub Nodes</div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Hub</th>
+                  <th>Location</th>
+                  <th>Role</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color:var(--text-primary);font-weight:600">Yellow Barn Farm</td>
+                  <td>9417 N Foothills Hwy, Longmont</td>
+                  <td>Seed Node</td>
+                  <td><span class="badge badge--paid">ACTIVE</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Couriers -->
+        <div id="panel-couriers" class="panel">
+          <div class="section-label">Couriers</div>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Courier</th>
+                  <th>Service Area</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td style="color:var(--text-primary);font-weight:600">Picky Pig</td>
+                  <td>Boulder County</td>
+                  <td><span class="badge badge--paid">ACTIVE</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Orders -->
+        <div id="panel-orders" class="panel">
+          <div class="section-label">Order Flow</div>
+          <div class="panel-card" style="text-align:center;padding:40px 20px">
+            <div style="font-size:32px;margin-bottom:12px">🌾 → 🏪 → 🚛</div>
+            <div class="fs-12 text-second" style="margin-bottom:8px">Steward → Hub → Courier</div>
+            <div class="fs-11 text-muted">Order flow tracking will connect to the enrollment database.<br>Spring '26: 44 members across 7 share types.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>
