@@ -285,7 +285,8 @@ function sendInvoice(id) {
     paymentRecords[id] = paymentRecords[id] || {};
     paymentRecords[id].status = "invoiced";
     delete loadingIds[id];
-    render();
+    showSuccess("Invoice sent — moved to Invoiced section");
+    setTimeout(render, 800);
   }, function(err) {
     delete loadingIds[id];
     showError("Invoice failed: " + err);
@@ -302,7 +303,8 @@ function markPaid(id) {
     paymentRecords[id] = paymentRecords[id] || {};
     paymentRecords[id].status = "paid";
     delete loadingIds[id];
-    render();
+    showSuccess("Payment marked as paid");
+    setTimeout(render, 800);
   }, function(err) {
     delete loadingIds[id];
     showError("Mark paid failed: " + err);
@@ -319,7 +321,8 @@ function releaseGate(id) {
     paymentRecords[id] = paymentRecords[id] || {};
     paymentRecords[id].status = "pending";
     delete loadingIds[id];
-    render();
+    showSuccess("Gate released — payment is now pending");
+    setTimeout(render, 800);
   }, function(err) {
     delete loadingIds[id];
     showError("Release gate failed: " + err);
@@ -350,7 +353,22 @@ function loadPaymentStatuses() {
   .catch(function() { /* silent fail — use local state */ });
 }
 
-// ─── Error display ───────────────────────────────────────────────────────────
+// ─── Toast messages ─────────────────────────────────────────────────────────
+function showSuccess(msg) {
+  var el = document.getElementById("success-toast");
+  if (!el) {
+    el = document.createElement("div");
+    el.id = "success-toast";
+    el.style.cssText = "position:fixed;bottom:20px;left:50%;transform:translateX(-50%);" +
+      "background:#2d6a3f;color:#c8d85a;padding:10px 20px;border-radius:8px;font-size:12px;" +
+      "font-weight:700;z-index:999;opacity:0;transition:opacity 0.3s;border:1px solid #4daa57";
+    document.body.appendChild(el);
+  }
+  el.textContent = msg;
+  el.style.opacity = "1";
+  setTimeout(function() { el.style.opacity = "0"; }, 3000);
+}
+
 function showError(msg) {
   var el = document.getElementById("error-toast");
   if (!el) {
@@ -387,7 +405,9 @@ function actionsHTML(p) {
       (loading ? 'Releasing...' : 'Release gate') + '</button>';
   }
   if (p.status === "invoiced") {
-    return '<div class="btn btn--sent">Invoice sent</div>' +
+    return '<button class="btn btn--invoice" onclick="openInvoiceModal(\'' + p.id + '\')"' +
+      (loading ? ' disabled style="opacity:0.5"' : '') + '>' +
+      'Resend</button>' +
       '<button class="btn btn--pay" onclick="markPaid(\'' + p.id + '\')"' +
       (loading ? ' disabled style="opacity:0.5"' : '') + '>' +
       (loading ? 'Saving...' : 'Mark paid') + '</button>';
