@@ -318,7 +318,7 @@ function handleSendInvoice(data) {
   var props = PropertiesService.getScriptProperties();
   var mercuryKey = props.getProperty("MERCURY_API_KEY");
 
-  // Call Mercury API if key is configured
+  // Call Mercury API if key is configured (non-blocking — failures logged, not fatal)
   if (mercuryKey) {
     var memo = "Stalk Market " + (data.season || "Spring '26") +
       " — " + (data.tranche || "") +
@@ -342,44 +342,92 @@ function handleSendInvoice(data) {
       if (resp.getResponseCode() >= 200 && resp.getResponseCode() < 300) {
         invoiceId = result.id || result.invoiceId || null;
       } else {
-        return { ok: false, error: "Mercury API error: " + (result.message || resp.getResponseCode()) };
+        Logger.log("Mercury API error (non-fatal): " + resp.getResponseCode());
       }
     } catch (err) {
-      return { ok: false, error: "Mercury API call failed: " + err.message };
+      Logger.log("Mercury API call failed (non-fatal): " + err.message);
     }
   }
 
-  // Email invoice to Mercury AP inbox
+  // Email invoice to Mercury AP inbox (table-based, inline styles for email compatibility)
   var apEmail = props.getProperty("MERCURY_AP_EMAIL");
-  if (apEmail && data.invoiceHTML) {
+  if (apEmail) {
     var subject = "Stalk Market Invoice — " + (data.payee || "") +
       " — " + (data.tranche || "") + " — " + fmt$(data.amount);
 
-    var emailBody = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-      '<style>' +
-        'body{background:#0a1810;color:#e8f0e0;font-family:Arial,sans-serif;padding:24px}' +
-        '.invoice{max-width:520px;margin:0 auto;background:#0f2519;border:1px solid #1e3a28;border-radius:12px;padding:28px 24px 20px}' +
-        '.invoice__header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}' +
-        '.invoice__brand{font-size:14px;font-weight:700;color:#c8d85a;letter-spacing:0.5px}' +
-        '.invoice__title{font-size:22px;font-weight:700;text-align:right}' +
-        '.invoice__number{font-size:10px;color:#4a6e4a;text-align:right;margin-top:2px}' +
-        '.invoice__divider{border:none;border-top:1px solid #1e3a28;margin:16px 0}' +
-        '.invoice__row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}' +
-        '.invoice__label{color:#7aaa7a}' +
-        '.invoice__value{font-weight:600}' +
-        '.invoice__total-row{display:flex;justify-content:space-between;padding:14px 0;margin-top:8px;border-top:2px solid #c8d85a;font-size:18px;font-weight:700}' +
-        '.invoice__total-value{color:#c8d85a}' +
-        '.invoice__footer{margin-top:20px;padding:12px 14px;background:rgba(200,216,90,0.06);border:1px solid #1e3a28;border-radius:8px;font-size:11px;color:#7aaa7a;line-height:1.6}' +
-        '.invoice__footer strong{color:#e8f0e0}' +
-      '</style></head><body>' + data.invoiceHTML + '</body></html>';
+    var invoiceNum = "SM-" + (data.id || "").toUpperCase().replace(/_/g, "-");
+    var issued = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+    function emailRow(label, value, valStyle) {
+      return '<tr>' +
+        '<td style="padding:6px 0;font-size:13px;color:#7aaa7a">' + label + '</td>' +
+        '<td style="padding:6px 0;font-size:13px;font-weight:600;text-align:right;color:' + (valStyle || '#e8f0e0') + '">' + value + '</td>' +
+      '</tr>';
+    }
+
+    var emailBody = '<!DOCTYPE html><html><head><meta charset="UTF-8"></head>' +
+      '<body style="margin:0;padding:24px;background:#0a1810;font-family:Arial,Helvetica,sans-serif;color:#e8f0e0">' +
+      '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="max-width:520px;margin:0 auto;background:#0f2519;border:1px solid #1e3a28;border-radius:12px">' +
+        '<tr><td style="padding:28px 24px 20px">' +
+
+          // Header
+          '<table cellpadding="0" cellspacing="0" border="0" width="100%">' +
+            '<tr>' +
+              '<td style="vertical-align:top">' +
+                '<div style="font-size:14px;font-weight:700;color:#c8d85a;letter-spacing:0.5px">STALK MARKET</div>' +
+                '<div style="font-size:10px;color:#4a6e4a;margin-top:2px">Yellow Barn Farm<br>9417 N Foothills Hwy<br>Longmont, CO 80503</div>' +
+              '</td>' +
+              '<td style="vertical-align:top;text-align:right">' +
+                '<div style="font-size:22px;font-weight:700;color:#e8f0e0">INVOICE</div>' +
+                '<div style="font-size:10px;color:#4a6e4a;margin-top:2px">' + invoiceNum + '</div>' +
+              '</td>' +
+            '</tr>' +
+          '</table>' +
+
+          // Divider
+          '<hr style="border:none;border-top:1px solid #1e3a28;margin:20px 0">' +
+
+          // Details
+          '<table cellpadding="0" cellspacing="0" border="0" width="100%">' +
+            emailRow("Bill To", data.payee || "") +
+            emailRow("Share", data.share || "") +
+            emailRow("Season", data.season || "") +
+            emailRow("Tranche", data.tranche || "") +
+          '</table>' +
+
+          // Divider
+          '<hr style="border:none;border-top:1px solid #1e3a28;margin:16px 0">' +
+
+          // Dates
+          '<table cellpadding="0" cellspacing="0" border="0" width="100%">' +
+            emailRow("Issued", issued) +
+            emailRow("Due Date", data.dueDate || "", "#e05555") +
+          '</table>' +
+
+          // Amount due
+          '<table cellpadding="0" cellspacing="0" border="0" width="100%" style="margin-top:8px;border-top:2px solid #c8d85a">' +
+            '<tr>' +
+              '<td style="padding:14px 0;font-size:18px;font-weight:700;color:#e8f0e0">Amount Due</td>' +
+              '<td style="padding:14px 0;font-size:18px;font-weight:700;text-align:right;color:#c8d85a">' + fmt$(data.amount) + '</td>' +
+            '</tr>' +
+          '</table>' +
+
+          // Footer
+          '<div style="margin-top:20px;padding:12px 14px;background-color:#121f18;border:1px solid #1e3a28;border-radius:8px;font-size:11px;color:#7aaa7a;line-height:1.6">' +
+            '<strong style="color:#e8f0e0">Payment via Mercury</strong><br>' +
+            'This invoice will be sent to your Stalk Market Mercury account for review. Payment must be manually approved before funds are released.' +
+          '</div>' +
+
+        '</td></tr>' +
+      '</table>' +
+      '</body></html>';
 
     try {
-      GmailApp.sendEmail(apEmail, subject, "Invoice attached (view in HTML-enabled client)", {
+      GmailApp.sendEmail(apEmail, subject, "Stalk Market Invoice — " + (data.payee || "") + " — " + fmt$(data.amount), {
         htmlBody: emailBody,
         name: "Stalk Market"
       });
     } catch (emailErr) {
-      // Log but don't fail the whole operation
       Logger.log("Email send failed: " + emailErr.message);
     }
   }

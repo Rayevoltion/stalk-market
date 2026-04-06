@@ -806,6 +806,28 @@ document.addEventListener("DOMContentLoaded", function() {
   document.getElementById("modal-cancel-btn").addEventListener("click", closeInvoiceModal);
   document.getElementById("modal-send-btn").addEventListener("click", confirmSendInvoice);
 
-  render();
-  loadPaymentStatuses();
+  // Load statuses from backend first, then render
+  if (APPS_SCRIPT_URL) {
+    fetch(APPS_SCRIPT_URL, {
+      method: "POST",
+      body: JSON.stringify({ action: "getPayments" })
+    })
+    .then(function(res) { return res.json(); })
+    .then(function(result) {
+      if (result.ok && result.payments) {
+        result.payments.forEach(function(p) {
+          if (p.status && p.status !== "pending") {
+            paymentRecords[p.id] = paymentRecords[p.id] || {};
+            paymentRecords[p.id].status = p.status;
+          }
+        });
+      }
+      render();
+    })
+    .catch(function() {
+      render(); // fallback to local state if backend fails
+    });
+  } else {
+    render();
+  }
 });
