@@ -37,10 +37,10 @@ var PAYMENTS = [
 
   // Sunburn Farm — Produce Shares
   // Revenue $13,250; 72% = $9,540. Guaranteed $5/lb after cut = total $13,975.
-  // $4,435 gap funded by Earth Church (Seed Bank). Each tranche includes EC portion.
-  {id:"s26_sunburn_t1",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T1 \u00b7 40% deposit",pctLabel:"72%\u00d740% + EC",amount:5590.00,dueDate:"2026-04-01",style:"steward",gate:false,seedBankFunded:true,sbAmount:1774.00},
-  {id:"s26_sunburn_t2",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T2 \u00b7 30% Summer",pctLabel:"72%\u00d730% + EC",amount:4192.50,dueDate:"2026-06-01",style:"steward",gate:false,seedBankFunded:true,sbAmount:1330.00},
-  {id:"s26_sunburn_t3",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T3 \u00b7 30% Fall *gate",pctLabel:"72%\u00d730% + EC",amount:4192.50,dueDate:"2026-09-01",style:"steward",gate:true,seedBankFunded:true,sbAmount:1330.00},
+  // $4,435 gap funded by Seed Bank. Each tranche includes SB portion.
+  {id:"s26_sunburn_t1",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T1 \u00b7 40% deposit",pctLabel:"72%\u00d740% + SB",amount:5590.00,dueDate:"2026-04-01",style:"steward",gate:false,seedBankFunded:true,sbAmount:1774.00},
+  {id:"s26_sunburn_t2",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T2 \u00b7 30% Summer",pctLabel:"72%\u00d730% + SB",amount:4192.50,dueDate:"2026-06-01",style:"steward",gate:false,seedBankFunded:true,sbAmount:1330.00},
+  {id:"s26_sunburn_t3",season:"Spring '26",payee:"Sunburn Farm",share:"Produce Shares",type:"steward",emoji:"\u{1F96C}",tranche:"T3 \u00b7 30% Fall *gate",pctLabel:"72%\u00d730% + SB",amount:4192.50,dueDate:"2026-09-01",style:"steward",gate:true,seedBankFunded:true,sbAmount:1330.00},
 
   // WoodDash — Wood Shares (revenue $201.60, steward 72% = $145.15)
   {id:"s26_wooddash_t1",season:"Spring '26",payee:"WoodDash",share:"Wood Shares",type:"steward",emoji:"\u{1FAB5}",tranche:"T1 \u00b7 40% deposit",pctLabel:"72% \u00d7 40%",amount:58.06,dueDate:"2026-04-01",style:"steward",gate:false},
@@ -65,12 +65,12 @@ var PAYMENTS = [
 // ─── Funds & reconciliation data ─────────────────────────────────────────────
 var FUNDS = {
   smBalance: 32444.00,
-  ecBalance: 23676.28,
-  ecOwes: 15746.92,
-  ecCredits: 11311.92,
-  ecSunburn: 4435.00,
-  ecReserve: 2141.08,
-  ecSeedBank: 5788.28,
+  sbBalance: 23676.28,
+  sbOwes: 15746.92,
+  sbCredits: 11311.92,
+  sbSunburn: 4435.00,
+  sbReserve: 2141.08,
+  sbNet: 5788.28,
   faceRevenue: 43696.60,
   cashCollected: 32444.00,
   creditsRedeemed: 11311.92,
@@ -168,6 +168,100 @@ function apiCall(action, payload, onSuccess, onError) {
   });
 }
 
+// ─── Invoice Generator ──────────────────────────────────────────────────────
+var pendingInvoiceId = null;
+
+function generateInvoiceHTML(p) {
+  var today = new Date();
+  var invoiceNum = "SM-" + p.id.toUpperCase().replace(/_/g, "-");
+  var issued = today.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+
+  return '<div class="invoice">' +
+    '<div class="invoice__header">' +
+      '<div>' +
+        '<div class="invoice__brand">STALK MARKET</div>' +
+        '<div style="font-size:10px;color:var(--text-muted);margin-top:2px">Yellow Barn Farm<br>9417 N Foothills Hwy<br>Longmont, CO 80503</div>' +
+      '</div>' +
+      '<div>' +
+        '<div class="invoice__title">INVOICE</div>' +
+        '<div class="invoice__number">' + invoiceNum + '</div>' +
+      '</div>' +
+    '</div>' +
+
+    '<hr class="invoice__divider">' +
+
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Bill To</span>' +
+      '<span class="invoice__value">' + p.payee + '</span>' +
+    '</div>' +
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Share</span>' +
+      '<span class="invoice__value">' + p.share + '</span>' +
+    '</div>' +
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Season</span>' +
+      '<span class="invoice__value">' + p.season + '</span>' +
+    '</div>' +
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Tranche</span>' +
+      '<span class="invoice__value">' + p.tranche + '</span>' +
+    '</div>' +
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Split</span>' +
+      '<span class="invoice__value">' + p.pctLabel + '</span>' +
+    '</div>' +
+
+    '<hr class="invoice__divider">' +
+
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Issued</span>' +
+      '<span class="invoice__value">' + issued + '</span>' +
+    '</div>' +
+    '<div class="invoice__row">' +
+      '<span class="invoice__label">Due Date</span>' +
+      '<span class="invoice__value" style="color:var(--overdue)">' + fmtD(p.dueDate) + '</span>' +
+    '</div>' +
+
+    (p.seedBankFunded ?
+      '<div class="invoice__row">' +
+        '<span class="invoice__label">Seed Bank portion</span>' +
+        '<span class="invoice__value" style="color:var(--amber)">' + fmt(p.sbAmount) + '</span>' +
+      '</div>' : '') +
+
+    '<div class="invoice__total-row">' +
+      '<span class="invoice__total-label">Amount Due</span>' +
+      '<span class="invoice__total-value">' + fmt(p.amount) + '</span>' +
+    '</div>' +
+
+    '<div class="invoice__footer">' +
+      '<strong>Payment via Mercury</strong><br>' +
+      'This invoice will be sent to your Stalk Market Mercury account for review. ' +
+      'Payment must be manually approved before funds are released.' +
+    '</div>' +
+  '</div>';
+}
+
+function openInvoiceModal(id) {
+  var p = PAYMENTS.find(function(pay) { return pay.id === id; });
+  if (!p) return;
+
+  pendingInvoiceId = id;
+  document.getElementById("invoice-preview").innerHTML = generateInvoiceHTML(p);
+  document.getElementById("invoice-modal").classList.remove("hidden");
+}
+
+function closeInvoiceModal() {
+  pendingInvoiceId = null;
+  document.getElementById("invoice-modal").classList.add("hidden");
+}
+
+function confirmSendInvoice() {
+  if (!pendingInvoiceId) return;
+  var id = pendingInvoiceId;
+  closeInvoiceModal();
+  sendInvoice(id);
+}
+
 // ─── Actions ─────────────────────────────────────────────────────────────────
 function sendInvoice(id) {
   if (loadingIds[id]) return;
@@ -182,7 +276,8 @@ function sendInvoice(id) {
     dueDate: p ? p.dueDate : "",
     share: p ? p.share : "",
     tranche: p ? p.tranche : "",
-    season: p ? p.season : ""
+    season: p ? p.season : "",
+    invoiceHTML: generateInvoiceHTML(p)
   };
 
   apiCall("sendInvoice", payload, function(result) {
@@ -275,8 +370,8 @@ function badgeHTML(urg) {
   return '<span class="badge badge--' + urg + '">' + URGENCY_LABELS[urg] + '</span>';
 }
 
-function ecBadgeHTML() {
-  return '<span class="badge badge--ec">EC</span>';
+function sbBadgeHTML() {
+  return '<span class="badge badge--sb">SB</span>';
 }
 
 // ─── Action buttons HTML ─────────────────────────────────────────────────────
@@ -299,9 +394,9 @@ function actionsHTML(p) {
   return '<button class="btn btn--pay" onclick="markPaid(\'' + p.id + '\')"' +
     (loading ? ' disabled style="opacity:0.5"' : '') + '>' +
     (loading ? 'Saving...' : 'Mark paid') + '</button>' +
-    '<button class="btn btn--invoice" onclick="sendInvoice(\'' + p.id + '\')"' +
+    '<button class="btn btn--invoice" onclick="openInvoiceModal(\'' + p.id + '\')"' +
     (loading ? ' disabled style="opacity:0.5"' : '') + '>' +
-    (loading ? 'Sending...' : 'Invoice') + '</button>';
+    'Invoice</button>';
 }
 
 // ─── Render: Stats Row ───────────────────────────────────────────────────────
@@ -317,7 +412,7 @@ function renderStats(payments) {
     { label: "Outstanding", value: fmt(outTotal), color: "text-lime", sub: outstanding.length + " pending" },
     { label: "Overdue", value: overdue.length, color: overdue.length ? "text-overdue" : "text-primary", sub: overdue.length ? fmt(overdueTotal) + " past due" : "All clear" },
     { label: "Due \u2264 14 days", value: dueSoon.length, color: dueSoon.length ? "text-amber" : "text-primary", sub: dueSoon.length ? fmt(dueSoonTotal) : "None" },
-    { label: "EC transfer due", value: fmt(FUNDS.ecOwes), color: "text-lime", sub: "before T1 disbursement" }
+    { label: "SB transfer due", value: fmt(FUNDS.sbOwes), color: "text-lime", sub: "before T1 disbursement" }
   ];
 
   var html = stats.map(function(s) {
@@ -385,11 +480,11 @@ function renderQueue(payments) {
   });
   html += '</div>';
 
-  // EC transfer banner
+  // Seed Bank transfer banner
   html += '<div class="info-banner">' +
-    '<strong>EC transfer required first:</strong> Move ' + fmt(FUNDS.ecOwes) +
-    ' from Earth Church \u2192 SM LLC before T1. Credits: ' + fmt(FUNDS.ecCredits) +
-    ' \u00b7 Sunburn: ' + fmt(FUNDS.ecSunburn) + '.' +
+    '<strong>Seed Bank transfer required first:</strong> Move ' + fmt(FUNDS.sbOwes) +
+    ' from Seed Bank \u2192 SM LLC before T1. Credits: ' + fmt(FUNDS.sbCredits) +
+    ' \u00b7 Sunburn: ' + fmt(FUNDS.sbSunburn) + '.' +
   '</div>';
 
   // Payment cards grouped
@@ -411,7 +506,7 @@ function renderQueue(payments) {
             '<div class="pay-card__detail">' + p.season + ' \u00b7 ' + p.share + '</div>' +
             '<div class="pay-card__tranche" style="color:' + getStyleColor(p.style) + '">' +
               p.tranche + ' \u00b7 ' + fmtD(p.dueDate) +
-              (p.seedBankFunded ? ' ' + ecBadgeHTML() : '') +
+              (p.seedBankFunded ? ' ' + sbBadgeHTML() : '') +
             '</div>' +
           '</div>' +
           '<div class="pay-card__amounts">' +
@@ -484,7 +579,7 @@ function renderSeason(payments) {
     ["Credits redeemed (84.1% of $13,453)", "\u2013" + fmt(FUNDS.creditsRedeemed), "var(--overdue)"],
     ["Cash collected (Square)", fmt(FUNDS.cashCollected), "var(--lime)"],
     ["Card fees (3.5%, borne by platform)", "\u2013" + fmt(FUNDS.cardFees), "var(--overdue)"],
-    ["Sunburn EC top-up", "+" + fmt(FUNDS.ecSunburn), "#c8a040"]
+    ["Sunburn SB top-up", "+" + fmt(FUNDS.sbSunburn), "#c8a040"]
   ];
 
   rows.forEach(function(r) {
@@ -563,7 +658,7 @@ function renderPayees(payments) {
         '<div style="font-size:10px;color:var(--text-muted);min-width:48px">' + fmtD(r.dueDate) + '</div>' +
         '<div style="font-size:12px;font-weight:700;color:var(--text-primary);min-width:65px;text-align:right">' + fmt(r.amount) + '</div>' +
         '<div style="min-width:72px;text-align:right">' +
-          (r.seedBankFunded ? ecBadgeHTML() + ' ' : '') +
+          (r.seedBankFunded ? sbBadgeHTML() + ' ' : '') +
           badgeHTML(r.urg) +
         '</div>' +
       '</div>';
@@ -579,8 +674,8 @@ function renderPayees(payments) {
 function renderFunds() {
   var html = '';
 
-  // EC Transfer section
-  html += '<div class="section-label" style="margin-top:0">Earth Church \u2192 SM transfer</div>';
+  // Seed Bank Transfer section
+  html += '<div class="section-label" style="margin-top:0">Seed Bank \u2192 SM transfer</div>';
   html += '<div class="panel-card">';
 
   // Two-column balances
@@ -591,22 +686,22 @@ function renderFunds() {
       '<div class="mini-stat__sub">cash collected</div>' +
     '</div>' +
     '<div class="mini-stat">' +
-      '<div class="mini-stat__label">Earth Church</div>' +
-      '<div class="mini-stat__value text-amber">' + fmt(FUNDS.ecBalance) + '</div>' +
+      '<div class="mini-stat__label">Seed Bank</div>' +
+      '<div class="mini-stat__value text-amber">' + fmt(FUNDS.sbBalance) + '</div>' +
       '<div class="mini-stat__sub">community contributions</div>' +
     '</div>' +
   '</div>';
 
   // Transfer breakdown
-  html += '<div class="data-row"><span class="data-row__label">Credits redeemed by members</span><span class="data-row__value text-second">' + fmt(FUNDS.ecCredits) + '</span></div>';
-  html += '<div class="data-row"><span class="data-row__label">Sunburn rate guarantee</span><span class="data-row__value" style="color:#c8a040">' + fmt(FUNDS.ecSunburn) + '</span></div>';
-  html += '<div class="data-row"><span class="data-row__label">Total EC \u2192 SM transfer</span><span class="data-row__value text-lime">' + fmt(FUNDS.ecOwes) + '</span></div>';
+  html += '<div class="data-row"><span class="data-row__label">Credits redeemed by members</span><span class="data-row__value text-second">' + fmt(FUNDS.sbCredits) + '</span></div>';
+  html += '<div class="data-row"><span class="data-row__label">Sunburn rate guarantee</span><span class="data-row__value" style="color:#c8a040">' + fmt(FUNDS.sbSunburn) + '</span></div>';
+  html += '<div class="data-row"><span class="data-row__label">Total SB \u2192 SM transfer</span><span class="data-row__value text-lime">' + fmt(FUNDS.sbOwes) + '</span></div>';
 
   // Post-transfer
   var afterTransfer = [
-    ["EC after transfer", fmt(FUNDS.ecBalance - FUNDS.ecOwes), "var(--text-primary)"],
-    ["Less: unused credit reserve", "\u2013" + fmt(FUNDS.ecReserve), "var(--amber)"],
-    ["True Seed Bank", fmt(FUNDS.ecSeedBank), "var(--lime)"]
+    ["SB after transfer", fmt(FUNDS.sbBalance - FUNDS.sbOwes), "var(--text-primary)"],
+    ["Less: unused credit reserve", "\u2013" + fmt(FUNDS.sbReserve), "var(--amber)"],
+    ["True Seed Bank", fmt(FUNDS.sbNet), "var(--lime)"]
   ];
 
   html += '<div style="margin-top:10px;font-size:11px;color:var(--text-second);line-height:1.8">';

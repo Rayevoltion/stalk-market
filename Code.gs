@@ -55,8 +55,8 @@ function doPost(e) {
     case "getCredits":    return jsonResponse(handleGetCredits(data));
 
     // EC Transfers
-    case "getECTransfers":    return jsonResponse(handleGetECTransfers(data));
-    case "recordECTransfer":  return jsonResponse(handleRecordECTransfer(data));
+    case "getSBTransfers":    return jsonResponse(handleGetSBTransfers(data));
+    case "recordSBTransfer":  return jsonResponse(handleRecordSBTransfer(data));
 
     default:
       return jsonResponse({ ok: false, error: "Unknown action: " + action });
@@ -110,9 +110,15 @@ function verifySession(token) {
 // ============================================
 // AUTH HANDLERS
 // ============================================
+function sha256(input) {
+  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, input);
+  return raw.map(function(b) {
+    var hex = (b < 0 ? b + 256 : b).toString(16);
+    return hex.length === 1 ? "0" + hex : hex;
+  }).join("");
+}
+
 function handleLogin(data) {
-  // TODO: Implement proper password verification
-  // For now, check against SETTINGS sheet admin list
   var email = (data.email || "").trim().toLowerCase();
   var pass = data.password || "";
 
@@ -120,8 +126,30 @@ function handleLogin(data) {
     return { ok: false, error: "Email and password required" };
   }
 
-  // TODO: Replace with real auth
-  // Placeholder: accept any credentials for development
+  // Check against SETTINGS sheet for admin credentials
+  var settings = getSheet("SETTINGS");
+  if (!settings) return { ok: false, error: "System error" };
+
+  var rows = settings.getDataRange().getValues();
+  var adminEmail = null;
+  var adminHash = null;
+  for (var i = 1; i < rows.length; i++) {
+    if (rows[i][0] === "admin_email") adminEmail = rows[i][1];
+    if (rows[i][0] === "admin_hash") adminHash = rows[i][1];
+  }
+
+  if (!adminEmail || !adminHash) {
+    return { ok: false, error: "Admin not configured" };
+  }
+
+  if (email !== adminEmail.toLowerCase()) {
+    return { ok: false, error: "Invalid credentials" };
+  }
+
+  if (sha256(pass) !== adminHash) {
+    return { ok: false, error: "Invalid credentials" };
+  }
+
   var token = generateToken();
   var sheet = getSheet("SESSIONS");
   if (sheet) {
@@ -321,6 +349,41 @@ function handleSendInvoice(data) {
     }
   }
 
+  // Email invoice to Mercury AP inbox
+  var apEmail = props.getProperty("MERCURY_AP_EMAIL");
+  if (apEmail && data.invoiceHTML) {
+    var subject = "Stalk Market Invoice — " + (data.payee || "") +
+      " — " + (data.tranche || "") + " — " + fmt$(data.amount);
+
+    var emailBody = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<style>' +
+        'body{background:#0a1810;color:#e8f0e0;font-family:Arial,sans-serif;padding:24px}' +
+        '.invoice{max-width:520px;margin:0 auto;background:#0f2519;border:1px solid #1e3a28;border-radius:12px;padding:28px 24px 20px}' +
+        '.invoice__header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px}' +
+        '.invoice__brand{font-size:14px;font-weight:700;color:#c8d85a;letter-spacing:0.5px}' +
+        '.invoice__title{font-size:22px;font-weight:700;text-align:right}' +
+        '.invoice__number{font-size:10px;color:#4a6e4a;text-align:right;margin-top:2px}' +
+        '.invoice__divider{border:none;border-top:1px solid #1e3a28;margin:16px 0}' +
+        '.invoice__row{display:flex;justify-content:space-between;padding:6px 0;font-size:13px}' +
+        '.invoice__label{color:#7aaa7a}' +
+        '.invoice__value{font-weight:600}' +
+        '.invoice__total-row{display:flex;justify-content:space-between;padding:14px 0;margin-top:8px;border-top:2px solid #c8d85a;font-size:18px;font-weight:700}' +
+        '.invoice__total-value{color:#c8d85a}' +
+        '.invoice__footer{margin-top:20px;padding:12px 14px;background:rgba(200,216,90,0.06);border:1px solid #1e3a28;border-radius:8px;font-size:11px;color:#7aaa7a;line-height:1.6}' +
+        '.invoice__footer strong{color:#e8f0e0}' +
+      '</style></head><body>' + data.invoiceHTML + '</body></html>';
+
+    try {
+      GmailApp.sendEmail(apEmail, subject, "Invoice attached (view in HTML-enabled client)", {
+        htmlBody: emailBody,
+        name: "Stalk Market"
+      });
+    } catch (emailErr) {
+      // Log but don't fail the whole operation
+      Logger.log("Email send failed: " + emailErr.message);
+    }
+  }
+
   // Update sheet: status=invoiced, mercury_invoice_id, invoice_sent_at
   var now = new Date().toISOString();
   sheet.getRange(row, 9).setValue("invoiced");          // I: status
@@ -328,6 +391,10 @@ function handleSendInvoice(data) {
   sheet.getRange(row, 11).setValue(now);                 // K: invoice_sent_at
 
   return { ok: true, invoiceId: invoiceId, invoice_sent_at: now };
+}
+
+function fmt$(n) {
+  return "$" + (Number(n) || 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function handleMarkPaid(data) {
@@ -370,14 +437,14 @@ function handleGetCredits(data) {
   return { ok: true, credits: sheetToObjects(sheet) };
 }
 
-function handleGetECTransfers(data) {
-  var sheet = getSheet("EC_TRANSFERS");
+function handleGetSBTransfers(data) {
+  var sheet = getSheet("SB_TRANSFERS");
   return { ok: true, transfers: sheetToObjects(sheet) };
 }
 
-function handleRecordECTransfer(data) {
-  var sheet = getSheet("EC_TRANSFERS");
-  if (!sheet) return { ok: false, error: "EC_TRANSFERS sheet not found" };
+function handleRecordSBTransfer(data) {
+  var sheet = getSheet("SB_TRANSFERS");
+  if (!sheet) return { ok: false, error: "SB_TRANSFERS sheet not found" };
 
   sheet.appendRow([
     data.id || Utilities.getUuid(),
