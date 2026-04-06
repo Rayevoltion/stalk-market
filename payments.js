@@ -247,12 +247,13 @@ function openInvoiceModal(id) {
 
   pendingInvoiceId = id;
   document.getElementById("invoice-preview").innerHTML = generateInvoiceHTML(p);
-  document.getElementById("invoice-modal").classList.remove("hidden");
+  document.getElementById("invoice-modal").style.display = "flex";
 }
 
 function closeInvoiceModal() {
   pendingInvoiceId = null;
-  document.getElementById("invoice-modal").classList.add("hidden");
+  document.getElementById("invoice-modal").style.display = "none";
+  document.getElementById("invoice-preview").innerHTML = "";
 }
 
 function confirmSendInvoice() {
@@ -799,6 +800,11 @@ document.addEventListener("DOMContentLoaded", function() {
       setTab(this.getAttribute("data-tab"));
     });
   });
+
+  // Invoice modal handlers
+  document.getElementById("modal-backdrop").addEventListener("click", closeInvoiceModal);
+  document.getElementById("modal-cancel-btn").addEventListener("click", closeInvoiceModal);
+  document.getElementById("modal-send-btn").addEventListener("click", confirmSendInvoice);
 
   render();
   loadPaymentStatuses();

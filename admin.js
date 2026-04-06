@@ -23,6 +23,7 @@ function handleLogin() {
   var email = document.getElementById("login-email").value.trim();
   var pass = document.getElementById("login-pass").value;
   var errorEl = document.getElementById("login-error");
+  var loginBtn = document.querySelector("#login-screen button");
 
   if (!email || !pass) {
     errorEl.textContent = "Enter email and password";
@@ -30,14 +31,33 @@ function handleLogin() {
     return;
   }
 
-  // TODO: Replace with real auth via Code.gs
-  // For now, accept any non-empty credentials
-  isLoggedIn = true;
-  localStorage.setItem("sm_admin_session", JSON.stringify({ email: email, ts: Date.now() }));
+  errorEl.style.display = "none";
+  if (loginBtn) { loginBtn.disabled = true; loginBtn.textContent = "Signing in..."; }
 
-  document.getElementById("login-screen").classList.add("hidden");
-  document.getElementById("admin-app").classList.remove("hidden");
-  renderAdmin();
+  fetch(APPS_SCRIPT_URL, {
+    method: "POST",
+    body: JSON.stringify({ action: "login", email: email, password: pass })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.ok) {
+      isLoggedIn = true;
+      localStorage.setItem("sm_admin_session", JSON.stringify({ email: data.email, token: data.token, ts: Date.now() }));
+      document.getElementById("login-screen").classList.add("hidden");
+      document.getElementById("admin-app").classList.remove("hidden");
+      renderAdmin();
+    } else {
+      errorEl.textContent = data.error || "Invalid credentials";
+      errorEl.style.display = "block";
+    }
+  })
+  .catch(function() {
+    errorEl.textContent = "Connection error — try again";
+    errorEl.style.display = "block";
+  })
+  .finally(function() {
+    if (loginBtn) { loginBtn.disabled = false; loginBtn.textContent = "Sign In"; }
+  });
 }
 
 function handleLogout() {
@@ -52,18 +72,21 @@ function handleLogout() {
 // ─── Check existing session ──────────────────────────────────────────────────
 function checkSession() {
   var session = localStorage.getItem("sm_admin_session");
-  if (session) {
-    try {
-      var data = JSON.parse(session);
-      // 8-hour expiry
-      if (Date.now() - data.ts < 8 * 60 * 60 * 1000) {
-        isLoggedIn = true;
-        document.getElementById("login-screen").classList.add("hidden");
-        document.getElementById("admin-app").classList.remove("hidden");
-        renderAdmin();
-        return;
-      }
-    } catch (e) { /* invalid session */ }
+  if (!session) return;
+
+  try {
+    var data = JSON.parse(session);
+    // Local 8-hour expiry check first
+    if (Date.now() - data.ts >= 8 * 60 * 60 * 1000) {
+      localStorage.removeItem("sm_admin_session");
+      return;
+    }
+    // Show dashboard optimistically while verifying token
+    isLoggedIn = true;
+    document.getElementById("login-screen").classList.add("hidden");
+    document.getElementById("admin-app").classList.remove("hidden");
+    renderAdmin();
+  } catch (e) {
     localStorage.removeItem("sm_admin_session");
   }
 }

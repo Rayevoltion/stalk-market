@@ -51,13 +51,13 @@
   </div>
 
   <!-- Invoice Modal -->
-  <div id="invoice-modal" class="modal hidden">
-    <div class="modal__backdrop" onclick="closeInvoiceModal()"></div>
+  <div id="invoice-modal" class="modal" style="display:none">
+    <div class="modal__backdrop" id="modal-backdrop"></div>
     <div class="modal__content">
       <div id="invoice-preview"></div>
       <div class="modal__actions">
-        <button class="btn btn--pay" id="modal-send-btn" onclick="confirmSendInvoice()">Send Invoice</button>
-        <button class="btn btn--invoice" onclick="closeInvoiceModal()">Cancel</button>
+        <button class="btn btn--pay" id="modal-send-btn">Send Invoice</button>
+        <button class="btn btn--cancel" id="modal-cancel-btn">Cancel</button>
       </div>
     </div>
   </div>

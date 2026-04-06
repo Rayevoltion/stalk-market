@@ -359,6 +359,7 @@ img { max-width: 100%; display: block; }
 
 .btn--pay     { background: #2d6a3f; border-color: #4daa57; color: #fff; }
 .btn--invoice { background: #1a3f2a; border-color: #5aaa6a; color: #b0e0b8; }
+.btn--cancel  { background: transparent; border-color: var(--border); color: var(--text-second); }
 .btn--sent    { background: var(--bg); border-color: #3a6e4a; color: #4a9e5a; cursor: default; }
 .btn--paid    { background: rgba(77, 170, 87, 0.15); border-color: #4daa57; color: #4daa57; cursor: default; }
 .btn--gate    { background: rgba(160, 100, 220, 0.12); border-color: #9a5dc8; color: #b87cdc; font-size: 10px; cursor: default; }
