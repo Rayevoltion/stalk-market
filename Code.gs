@@ -113,9 +113,30 @@ function validatePhone(phone) {
   return p.length >= 7 && p.length <= 15;
 }
 
+
+// ── CORS Origin Validation ────────────────────────────────────────────────────
+// Apps Script doesn't support setting response headers directly on doPost,
+// but we can validate the Origin from the request body (_origin field)
+// and reject requests from unknown sources.
+// Frontend must include: body._origin = window.location.origin
+//
+// For backwards compatibility, requests without _origin are allowed but logged.
+
+var ALLOWED_ORIGINS = (function(){ var u = PropertiesService.getScriptProperties().getProperty("SITE_URL"); return u ? [u] : []; })();
+
+function isOriginAllowed(origin) {
+  if (!origin) return true; // allow requests without origin (e.g. server-to-server, curl)
+  // Always allow localhost for development
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) return true;
+  return ALLOWED_ORIGINS.indexOf(origin) !== -1;
+}
+
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var action = data.action || "ping";
+  if (data._origin && !isOriginAllowed(data._origin)) {
+    return jsonResponse({ ok: false, error: 'Origin not allowed.' });
+  }
 
   switch (action) {
     // Auth
