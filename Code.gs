@@ -202,13 +202,46 @@ function verifySession(token) {
 // ============================================
 // AUTH HANDLERS
 // ============================================
-function sha256(input) {
-  var raw = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, input);
-  return raw.map(function(b) {
-    var hex = (b < 0 ? b + 256 : b).toString(16);
-    return hex.length === 1 ? "0" + hex : hex;
-  }).join("");
+
+// ── Password Hashing with Salt ────────────────────────────────────────────────
+// Replaces bare SHA-256 with salted SHA-256.
+// Format: "SALT$HASH" where SALT is a random 16-char hex string.
+// Legacy unsalted hashes (no "$") are detected on login and upgraded
+// transparently — no password resets required.
+
+function generateSalt() {
+  var bytes = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    Utilities.getUuid() + Date.now().toString()
+  );
+  return bytes.slice(0, 8).map(function(b) {
+    return ('0' + (b & 0xFF).toString(16)).slice(-2);
+  }).join('');
 }
+
+function sha256Hex(input) {
+  var bytes = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, input);
+  return bytes.map(function(b) {
+    return ('0' + (b & 0xFF).toString(16)).slice(-2);
+  }).join('');
+}
+
+function hashPasswordSalted(plaintext) {
+  var salt = generateSalt();
+  return salt + '$' + sha256Hex(salt + plaintext);
+}
+
+function verifyPassword(plaintext, stored) {
+  if (!stored || !plaintext) return false;
+  if (stored.indexOf('$') === -1) {
+    // Legacy: bare SHA-256 unsalted
+    return sha256Hex(plaintext) === stored;
+  }
+  var parts = stored.split('$');
+  return sha256Hex(parts[0] + plaintext) === parts[1];
+}
+
+function sha256(input) { return sha256Hex(input); }
 
 function handleLogin(data) {
   var email = (data.email || "").trim().toLowerCase();
