@@ -48,19 +48,18 @@ function checkRateLimit(identifier, type) {
 // overly long inputs, and null/undefined coercion issues.
 
 var FIELD_LIMITS = {
-  name:        { max: 100, pattern: /[<>"'&;=+\-@	
-\]/ },
+  name:        { max: 100, pattern: /[<>"'&;@\]/ },
   email:       { max: 254, pattern: /[<>"'&;\]/ },
-  phone:       { max: 20,  pattern: /[^0-9+().x -]/ },
-  address:     { max: 200, pattern: /[<>"'&;=+@\-]/ },
-  city:        { max: 100, pattern: /[<>"'&;=+@\-]/ },
-  zip:         { max: 10,  pattern: /[^0-9-]/ },
+  phone:       { max: 20,  pattern: /[^0-9+().x \-]/ },
+  address:     { max: 200, pattern: /[<>"'&;@\]/ },
+  city:        { max: 100, pattern: /[<>"'&;@\]/ },
+  zip:         { max: 10,  pattern: /[^0-9\-]/ },
   state:       { max: 2,   pattern: /[^A-Za-z]/ },
   notes:       { max: 500, pattern: /[<>"'\]/ },
   description: { max: 500, pattern: /[<>"'\]/ },
-  tier:        { max: 30,  pattern: /[^a-zA-Z0-9_-]/ },
-  business:    { max: 60,  pattern: /[<>"'&;=\]/ },
-  repName:     { max: 100, pattern: /[<>"'&;=+@\-]/ },
+  tier:        { max: 30,  pattern: /[^a-zA-Z0-9_\-]/ },
+  business:    { max: 60,  pattern: /[<>"'&;@\]/ },
+  repName:     { max: 100, pattern: /[<>"'&;@\]/ },
   message:     { max: 1000,pattern: /[<>\]/ },
   title:       { max: 150, pattern: /[<>"'\]/ },
   default:     { max: 500, pattern: /[<>"'\]/ },
