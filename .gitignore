@@ -44,3 +44,4 @@ build/
 Code-gs-LATEST.txt
 Code-gs-FINAL.txt
 Code-gs-*.txt
+.clasprc.json
