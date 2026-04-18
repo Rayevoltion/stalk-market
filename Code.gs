@@ -41,6 +41,79 @@ function checkRateLimit(identifier, type) {
   return { limited: false };
 }
 
+
+// ── Input Sanitization ────────────────────────────────────────────────────────
+// Sanitize all user-controlled strings before writing to sheets or using in logic.
+// Defends against: XSS payloads stored in sheets, formula injection (=CMD),
+// overly long inputs, and null/undefined coercion issues.
+
+var FIELD_LIMITS = {
+  name:        { max: 100, pattern: /[<>"'&;=+\-@	
+\]/ },
+  email:       { max: 254, pattern: /[<>"'&;\]/ },
+  phone:       { max: 20,  pattern: /[^0-9+\-().x ]/ },
+  address:     { max: 200, pattern: /[<>"'&;=+\-@\]/ },
+  city:        { max: 100, pattern: /[<>"'&;=+\-@\]/ },
+  zip:         { max: 10,  pattern: /[^0-9\-]/ },
+  state:       { max: 2,   pattern: /[^A-Za-z]/ },
+  notes:       { max: 500, pattern: /[<>"'\]/ },
+  description: { max: 500, pattern: /[<>"'\]/ },
+  tier:        { max: 30,  pattern: /[^a-zA-Z0-9_\-]/ },
+  business:    { max: 60,  pattern: /[<>"'&;=\]/ },
+  repName:     { max: 100, pattern: /[<>"'&;=+\-@\]/ },
+  message:     { max: 1000,pattern: /[<>\]/ },
+  title:       { max: 150, pattern: /[<>"'\]/ },
+  default:     { max: 500, pattern: /[<>"'\]/ },
+};
+
+function sanitizeField(value, fieldName) {
+  if (value === null || value === undefined) return "";
+  var str = String(value).trim();
+  if (str === "") return "";
+
+  var cfg = FIELD_LIMITS[fieldName] || FIELD_LIMITS.default;
+
+  // Block formula injection: fields starting with = + - @ are Excel/Sheets formula triggers
+  if (/^[=+\-@]/.test(str)) {
+    str = "'" + str; // prefix with single quote — Sheets treats it as literal text
+  }
+
+  // Strip the most dangerous characters based on field type
+  str = str.replace(cfg.pattern, "");
+
+  // Enforce max length
+  if (str.length > cfg.max) str = str.slice(0, cfg.max);
+
+  return str;
+}
+
+function sanitizeData(data, fields) {
+  // Sanitize a subset of fields on a data object in-place.
+  // fields = array of field names to sanitize, or null for all string fields.
+  var fieldsToSanitize = fields || Object.keys(data);
+  var sanitized = {};
+  Object.keys(data).forEach(function(k) {
+    if (fieldsToSanitize.indexOf(k) !== -1 && typeof data[k] === "string") {
+      sanitized[k] = sanitizeField(data[k], k);
+    } else {
+      sanitized[k] = data[k];
+    }
+  });
+  return sanitized;
+}
+
+function validateEmail(email) {
+  if (!email) return false;
+  var e = String(email).trim().toLowerCase();
+  return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(e) && e.length <= 254;
+}
+
+function validatePhone(phone) {
+  if (!phone) return true; // phone is usually optional
+  var p = String(phone).replace(/[^0-9+]/g, "");
+  return p.length >= 7 && p.length <= 15;
+}
+
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var action = data.action || "ping";
