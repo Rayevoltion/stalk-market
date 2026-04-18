@@ -82,12 +82,10 @@ function cors(response) {
 }
 
 function generateToken() {
-  var chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  var token = "";
-  for (var i = 0; i < 48; i++) {
-    token += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return token;
+  // SECURITY FIX 2026-04-17: replaced Math.random() (not CSPRNG) with
+  // Utilities.getUuid() which uses a cryptographically secure random source.
+  // UUID v4 gives 122 bits of randomness — sufficient for session tokens.
+  return Utilities.getUuid();
 }
 
 function verifySession(token) {
