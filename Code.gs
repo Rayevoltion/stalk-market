@@ -19,6 +19,28 @@ function getSheet(name) {
 // ============================================
 // WEB APP ENDPOINTS
 // ============================================
+
+// ── Rate Limiting ─────────────────────────────────────────────────────────────
+var RATE_LIMITS = { login: { max: 5, windowSecs: 900 }, public: { max: 60, windowSecs: 60 } };
+function checkRateLimit(identifier, type) {
+  if (!identifier) return { limited: false };
+  type = type || "public";
+  var cfg = RATE_LIMITS[type] || RATE_LIMITS.public;
+  var cache = CacheService.getScriptCache();
+  var key = "rl_" + type + "_" + String(identifier).toLowerCase().replace(/[^a-z0-9@._-]/g, "_").slice(0, 60);
+  var now = Math.floor(Date.now() / 1000);
+  var windowStart = now - cfg.windowSecs;
+  var raw = cache.get(key);
+  var hits = raw ? JSON.parse(raw).filter(function(t) { return t > windowStart; }) : [];
+  if (hits.length >= cfg.max) {
+    var retryAfter = (hits[0] + cfg.windowSecs) - now;
+    return { limited: true, retryAfter: Math.max(1, retryAfter) };
+  }
+  hits.push(now);
+  cache.put(key, JSON.stringify(hits), cfg.windowSecs + 10);
+  return { limited: false };
+}
+
 function doPost(e) {
   var data = JSON.parse(e.postData.contents);
   var action = data.action || "ping";
@@ -123,6 +145,8 @@ function handleLogin(data) {
   if (!email || !pass) {
     return { ok: false, error: "Email and password required" };
   }
+  var rl = checkRateLimit(email, "login");
+  if (rl.limited) return { ok: false, error: "Too many login attempts. Wait " + rl.retryAfter + "s.", rateLimited: true };
 
   // Check against SETTINGS sheet for admin credentials
   var settings = getSheet("SETTINGS");
